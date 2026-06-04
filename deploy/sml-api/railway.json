@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "uvicorn sml_signal_api:app --host 0.0.0.0 --port $PORT",
+    "startCommand": "python mcp_server_sml.py",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5,
     "healthcheckPath": "/health"

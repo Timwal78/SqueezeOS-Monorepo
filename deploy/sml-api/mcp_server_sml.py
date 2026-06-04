@@ -747,4 +747,17 @@ def get_institution_catalog() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    mcp.run()
+    import os
+    port = int(os.getenv("PORT", "0"))
+    if port:
+        # Railway / remote deployment — serve over SSE so Smithery + MCP clients connect
+        # SSE endpoint: https://your-url.railway.app/sse
+        # MCP endpoint: https://your-url.railway.app/mcp  (streamable-http)
+        try:
+            mcp.run(transport="sse", host="0.0.0.0", port=port)
+        except TypeError:
+            # Older FastMCP versions
+            mcp.run(transport="sse")
+    else:
+        # Local — stdio for Claude Desktop / Cursor
+        mcp.run()

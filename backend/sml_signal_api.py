@@ -58,7 +58,7 @@ app = FastAPI(
         "Payment: RLUSD on XRPL via x402 protocol."
     ),
     version="6.2.0",
-    contact={"name": "ScriptMasterLabs", "url": "https://scriptmasterlabs.com"},
+    contact={"name": "ScriptMasterLabs", "url": "https://sml-signal-api-production.up.railway.app"},
     license_info={"name": "Proprietary — DO NOT REDISTRIBUTE"},
     openapi_tags=[
         {"name": "signals",  "description": "Live compression signals — Base-4 engine output"},
@@ -268,7 +268,7 @@ async def signal_full(ticker: str, request: Request):
                 content={
                     "error":   "Payment required",
                     "payment": {"currency": "RLUSD", "amount": "0.05", "protocol": "x402"},
-                    "info":    "https://scriptmasterlabs.com/api/pricing",
+                    "info":    "https://sml-signal-api-production.up.railway.app/api/pricing",
                 }
             )
 
@@ -650,7 +650,7 @@ Counsel output is injected with full Base-4 context so the debate
 is grounded in quantitative compression state, not just narrative.
 
 ## Contact
-Site: https://scriptmasterlabs.com
+Site: https://sml-signal-api-production.up.railway.app
 Methodology: /api/methodology
 """
 
@@ -703,7 +703,7 @@ async def mcp_manifest():
 @app.get("/sitemap.xml", tags=["meta"], response_class=Response,
          summary="SEO sitemap with signal pages")
 async def sitemap():
-    base = os.getenv("SITE_BASE_URL", "https://scriptmasterlabs.com")
+    base = os.getenv("SITE_BASE_URL", "https://sml-signal-api-production.up.railway.app")
     tickers = ["SPY", "IWM", "QQQ", "AMC", "GME", "NVDA", "TSLA", "AAPL", "META", "MSFT"]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     urls = [f"""  <url>
@@ -775,3 +775,4 @@ if __name__ == "__main__":
     print(f"  llms.txt: http://localhost:{port}/llms.txt")
     print(f"  Preview:  http://localhost:{port}/api/signal/preview/SPY")
     uvicorn.run(app, host="0.0.0.0", port=port)
+

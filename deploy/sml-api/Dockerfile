@@ -8,5 +8,7 @@ RUN pip install --prefer-binary --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Run FastMCP server — SSE transport for Smithery + MCP directory clients
+# REST preview API also available via sml_signal_api routes
 EXPOSE 8010
-CMD ["sh", "-c", "uvicorn sml_signal_api:app --host 0.0.0.0 --port ${PORT:-8010}"]
+CMD ["sh", "-c", "python mcp_server_sml.py"]

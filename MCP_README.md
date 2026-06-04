@@ -72,7 +72,7 @@ PRIME signal = CI >= 78 AND SQI >= 75 simultaneously
 
 ### Claude Desktop / Cursor
 ```bash
-claude mcp add sml-institutional -- python /path/to/mcp_server_sml.py
+claude mcp add sml-institutional -- python C:\Users\timot\.gemini\antigravity\scratch\SqueezeOS_Monorepo\backend\mcp_server_sml.py
 ```
 
 ### From Smithery
@@ -147,3 +147,5 @@ This server is listed on:
 - GitHub: https://github.com/timwal78/SqueezeOS
 - Methodology: `/api/methodology` (served locally)
 - AI manifest: `/llms.txt` (served locally)
+
+
