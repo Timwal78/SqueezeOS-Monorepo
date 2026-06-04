@@ -746,18 +746,68 @@ def get_institution_catalog() -> dict:
 # LAUNCH
 # ─────────────────────────────────────────────────────────────────────────────
 
+def create_http_app():
+    """
+    Create the FastMCP SSE ASGI app for HTTP deployment.
+    Compatible with FastMCP 3.3.1.
+
+    Endpoints exposed:
+      GET  /sse        — SSE stream (Smithery, Claude Desktop HTTP, MCP clients)
+      POST /messages   — MCP message handler
+      GET  /mcp        — Streamable HTTP (MCP 2.0 spec)
+      GET  /health     — Liveness probe
+    """
+    from fastmcp.server.http import create_sse_app, create_streamable_http_app
+    from starlette.routing import Route
+    from starlette.responses import JSONResponse
+    from starlette.applications import Starlette
+    from starlette.middleware.cors import CORSMiddleware
+    from starlette.routing import Mount
+
+    async def health(_):
+        return JSONResponse({
+            "status":  "operational",
+            "engine":  "SML-Base4-v6.2",
+            "version": "6.2.0",
+            "transport": "sse",
+            "endpoints": {
+                "sse":      "/sse",
+                "messages": "/messages",
+                "mcp":      "/mcp",
+            },
+            "paper_mode":  os.getenv("ROBINHOOD_PAPER_MODE", "true"),
+            "pdt_shield":  os.getenv("PDT_SHIELD_ENABLED", "false"),
+        })
+
+    # SSE app — Smithery and legacy MCP clients
+    sse_app = create_sse_app(mcp, message_path="/messages", sse_path="/sse")
+
+    # Streamable HTTP — MCP 2.0 spec clients
+    http_app = create_streamable_http_app(mcp, streamable_http_path="/mcp", stateless_http=True)
+
+    # Combine into one ASGI app with CORS
+    combined = Starlette(routes=[
+        Route("/health", health),
+        Mount("/mcp", app=http_app),
+        Mount("/", app=sse_app),          # catches /sse and /messages
+    ])
+    combined.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    return combined
+
+
 if __name__ == "__main__":
-    import os
     port = int(os.getenv("PORT", "0"))
     if port:
-        # Railway / remote deployment — serve over SSE so Smithery + MCP clients connect
-        # SSE endpoint: https://your-url.railway.app/sse
-        # MCP endpoint: https://your-url.railway.app/mcp  (streamable-http)
-        try:
-            mcp.run(transport="sse", host="0.0.0.0", port=port)
-        except TypeError:
-            # Older FastMCP versions
-            mcp.run(transport="sse")
+        # Railway / remote deployment — serve SSE + streamable-HTTP
+        import uvicorn
+        app = create_http_app()
+        logger.info("SML MCP Server starting on port %d (SSE + HTTP transport)", port)
+        uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         # Local — stdio for Claude Desktop / Cursor
         mcp.run()
