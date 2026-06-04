@@ -84,12 +84,22 @@ except ImportError:
     logger.error("[LEGACY] WhaleStalkerEngine import failure.")
     WhaleStalkerEngine = None
 
-# --- SML CORE ---
+# --- SML CORE (Fractal Cascade) ---
 try:
     from sml_engine import SMLEngine
 except ImportError:
     logger.error("[LEGACY] SMLEngine import failure.")
     SMLEngine = None
+
+# --- SML BASE-4 SOVEREIGN HARMONIC MATRIX v6.2 ---
+try:
+    from sml_base4_engine import SMLBase4Engine, SMLBase4Config
+    _SMLBase4Available = True
+except ImportError:
+    logger.error("[LEGACY] SMLBase4Engine import failure — Base-4 harmonic matrix disabled.")
+    SMLBase4Engine = None
+    SMLBase4Config = None
+    _SMLBase4Available = False
 
 # ── 4. Resilient Worker Bridges ──
 
@@ -168,6 +178,15 @@ def init_services():
             
             if SMLEngine:
                 _services['sml'] = SMLEngine()
+
+            if _SMLBase4Available:
+                _services['sml_base4'] = SMLBase4Engine(SMLBase4Config(
+                    ci_structural_gate=78,
+                    sqi_prime_level=75,
+                    htf1_resample="4h",
+                    htf2_resample="1D",
+                ))
+                logger.info("[LEGACY] SML Base-4 Sovereign Harmonic Matrix v6.2 online")
                 
             if mmle:
                 # MMLE usually handles its own instance tracking

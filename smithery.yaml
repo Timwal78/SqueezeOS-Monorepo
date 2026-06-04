@@ -1,0 +1,137 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# SCRIPTMASTER LABS — SMITHERY MCP MANIFEST
+# Submission file for Smithery.ai and compatible MCP directories
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: sml-base4-institutional-signals
+version: 6.2.0
+
+description: |
+  Institutional-grade EMA compression signal engine by ScriptMasterLabs.
+
+  The SML Base-4 Sovereign Harmonic Matrix tracks 9 harmonic EMA sets
+  (1:4:8:12 ratio) simultaneously across multiple time horizons. When all
+  9 sets compress, price is coiling across every institutional time horizon
+  at once — the mathematical signature of pre-breakout accumulation.
+
+  DUAL-GATE SIGNAL QUALIFICATION:
+  • CI >= 78 (structural gate): top 22nd percentile compression — chop zone eliminated
+  • SQI >= 75 (execution gate): all 4 pillars aligned (compression + MTF + volume + regime)
+  • PRIME signal: both gates pass simultaneously
+
+  LIVE VALIDATED (2026-06-04):
+  • SPY: APEX SINGULARITY — 8/9 sets, CI 94.8, COMPRESSED regime
+  • IWM: CRITICAL MASS — 5/9 sets, CI 85.9, COMPRESSED regime
+  • AMC: SCANNING — CI 75.8 (correctly identified as chop zone)
+  • GME: SCANNING — CI 63.7 (zero sets converged)
+
+  FULL INSTITUTIONAL STACK:
+  • Oracle Engine (BUY_PRIME / BUY / HOLD / SHIELD)
+  • TradingAgents counsel (Bull/Bear debate via Anthropic Claude)
+  • Echo Forge (cross-asset pattern memory)
+  • OpenMythos (Recurrent-Depth Transformer)
+  • Argus Omega (fusion intelligence)
+  • IWM 0DTE Desk
+  • x402 RLUSD micropayment rail (XRPL)
+  • Robinhood MCP execution (paper mode default)
+
+  PDT rule eliminated 2026-06-04. Human confirmation gate on all execution.
+  Paper mode default — live capital requires explicit operator override.
+
+startCommand:
+  type: stdio
+  command: python
+  args:
+    - backend/mcp_server_sml.py
+  cwd: "."
+
+configSchema:
+  type: object
+  properties:
+    anthropic_api_key:
+      type: string
+      description: "Anthropic API key for AI counsel verdicts (optional — signals work without it)"
+    discord_webhook:
+      type: string
+      description: "Discord webhook URL for order alerts and signal notifications (optional)"
+    paper_mode:
+      type: boolean
+      default: true
+      description: "Paper mode — simulate fills without real execution (recommended for testing)"
+    robinhood_paper_mode:
+      type: boolean
+      default: true
+      description: "Robinhood MCP paper mode flag"
+    pdt_shield_enabled:
+      type: boolean
+      default: false
+      description: "PDT shield (eliminated 2026-06-04 — keep false unless reinstated)"
+    x402_enforce:
+      type: boolean
+      default: false
+      description: "Enforce RLUSD payment for premium endpoints (disable for local/dev use)"
+  required: []
+
+license: Proprietary
+homepage: https://scriptmasterlabs.com
+repository: https://github.com/timwal78/SqueezeOS
+author:
+  name: ScriptMasterLabs
+  url: https://scriptmasterlabs.com
+
+tags:
+  - trading
+  - signals
+  - technical-analysis
+  - ema
+  - compression
+  - institutional
+  - options
+  - multi-timeframe
+  - ai-trading
+  - market-intelligence
+  - xrpl
+  - rlusd
+
+categories:
+  - finance
+  - trading
+  - market-data
+  - analysis
+
+tools:
+  - name: get_signal_preview
+    description: "Free truncated Base-4 signal for any ticker — state, CI, SQI, action, levels"
+    cost: free
+
+  - name: run_showcase
+    description: "Live scan across SPY/IWM/QQQ/AMC/GME/NVDA + more — sorted by signal quality"
+    cost: free
+
+  - name: get_methodology
+    description: "Complete mathematical reference — 1:4:8:12 structure, CI percentile math, dual-gate logic, live results"
+    cost: free
+
+  - name: check_health
+    description: "Service status and regulatory context"
+    cost: free
+
+  - name: get_institution_catalog
+    description: "Full ScriptMasterLabs product and service catalog — all engines, APIs, and tools"
+    cost: free
+
+  - name: get_intelligence_brief
+    description: "Full institutional narrative brief — compression math, grid analysis, MTF context, risk factors, agent instruction"
+    cost: "0.10 RLUSD (x402)"
+
+  - name: get_full_signal
+    description: "Complete Base-4 signal with all 9 set metrics, MTF breakdown, SQI pillars"
+    cost: "0.05 RLUSD (x402)"
+
+  - name: scan_tickers
+    description: "Multi-ticker scan with CI/prime filters — up to 10 symbols"
+    cost: "0.05 RLUSD (x402)"
+
+  - name: get_council_verdict
+    description: "Full Bull/Bear/Neutral AI debate via TradingAgents — requires ANTHROPIC_API_KEY"
+    cost: "0.25 RLUSD (x402)"

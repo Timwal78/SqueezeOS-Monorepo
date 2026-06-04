@@ -50,6 +50,10 @@ class ExecutionEngine:
         self.broker = None
 
         # ── PDT SHIELD ──
+        # PDT rule eliminated 2026-06-04 (FINRA regulatory rollback).
+        # Shield preserved for audit and optional re-engagement via env var.
+        # Set PDT_SHIELD_ENABLED=true to re-activate if rule reinstated.
+        self.pdt_shield_enabled = os.environ.get('PDT_SHIELD_ENABLED', 'false').lower() == 'true'
         self.pdt_limit = 3
         self.pdt_window_days = 5
         self.day_trades: List[float] = []
@@ -77,7 +81,8 @@ class ExecutionEngine:
         self.last_gex_update = 0
         self.beast_hedger = None
 
-        logger.info(f"[EXECUTION] Engine Ready | Live: {self.live_mode} | PDT: {len(self.day_trades)}/3")
+        pdt_status = f"PDT Shield {'ON' if self.pdt_shield_enabled else 'OFF (rule eliminated 2026-06-04)'}"
+        logger.info(f"[EXECUTION] Engine Ready | Live: {self.live_mode} | {pdt_status}")
 
     # ─────────────────────────────────────────────────────────────
     # BROKER WIRING
@@ -160,9 +165,15 @@ class ExecutionEngine:
         self.day_trades = [t for t in self.day_trades if t > five_days_ago]
 
     def check_pdt_shield(self) -> bool:
+        """
+        Returns True (trade allowed) if PDT shield is disabled or limit not reached.
+        PDT rule eliminated 2026-06-04. Shield off by default; re-engage via PDT_SHIELD_ENABLED=true.
+        """
+        if not self.pdt_shield_enabled:
+            return True
         self._prune_pdt()
         if len(self.day_trades) >= self.pdt_limit:
-            logger.warning(f"🛑 PDT SHIELD ACTIVE: {len(self.day_trades)}/3 trades used.")
+            logger.warning(f"PDT SHIELD ACTIVE: {len(self.day_trades)}/3 trades used. Set PDT_SHIELD_ENABLED=false to disable.")
             return False
         return True
 

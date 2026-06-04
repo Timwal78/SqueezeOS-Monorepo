@@ -1,0 +1,21 @@
+# SML Base-4 Signal API — Production Container
+# Railway deployment target for public MCP endpoint
+FROM python:3.12-slim
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+
+COPY requirements_sml_api.txt .
+RUN pip install --prefer-binary --no-cache-dir -r requirements_sml_api.txt
+
+# Copy only what the API needs — not the full SqueezeOS backend
+COPY sml_base4_engine.py .
+COPY sml_intelligence_brief.py .
+COPY sml_signal_api.py .
+COPY robinhood_mcp_adapter.py .
+COPY mcp_server_sml.py .
+
+EXPOSE 8010
+
+# Railway injects PORT env var — uvicorn reads it
+CMD ["sh", "-c", "uvicorn sml_signal_api:app --host 0.0.0.0 --port ${PORT:-8010}"]

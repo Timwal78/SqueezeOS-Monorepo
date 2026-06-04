@@ -6,6 +6,7 @@ Aggregates live signals from all SqueezeOS engines into a single
 BUY / SELL / HOLD / SHIELD directive with full Driver/Navigator payload.
 
 GitNexus-verified engine chain:
+  sml_base4_engine.py   → SMLBase4Engine (dual-gate CI>=78 + SQI>=75) [NEW v6.2]
   gamma_flow_engine.py  → _signal_gamma_flip, analyze_fusion
   sml_engine.py         → compute_fractal_cascade, f_classify
   rmre_bridge.py        → compute_regime, _run_pipeline
@@ -13,9 +14,16 @@ GitNexus-verified engine chain:
   execution_engine.py   → get_gamma_walls
   data_providers.py     → TradierProvider (live quotes)
 """
+import sys
+import os
 import logging
 import time
 from datetime import datetime
+
+# Ensure backend root is on path so sml_base4_engine is importable
+_BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, _BACKEND_ROOT)
 from typing import Optional
 
 logger = logging.getLogger("Oracle")
@@ -205,6 +213,92 @@ class OracleEngine:
             logger.warning(f"[Oracle] Gamma flow unavailable for {symbol}: {e}")
             return {}
 
+    def _get_sml_base4_signal(self, symbol: str) -> dict:
+        """
+        Compute SML Base-4 Sovereign Harmonic Matrix for the symbol.
+        Uses DataManager historical bars (Tradier/Alpaca) if available;
+        falls back to yfinance for paper/dev mode.
+
+        Dual-gate logic:
+          CI >= 78 (structural gate)  AND  SQI >= 75 (execution gate) = PRIME
+          CI >= 78 only               = structural confirmation (+12 pts)
+          CI < 78                     = chop zone warning (-5 pts)
+        """
+        try:
+            from sml_base4_engine import SMLBase4Engine, SMLBase4Config, sml_base4_oracle_contribution
+            import pandas as pd
+
+            df = None
+            dm = self._get_service("dm")
+
+            # DataManager path (Tradier / Alpaca live bars)
+            if dm:
+                try:
+                    bars = dm.get_historical_bars(symbol, timeframe="1H", limit=500)
+                    if bars and len(bars) >= 100:
+                        df = pd.DataFrame([{
+                            "open":   b.get("open",   b.get("o", 0)),
+                            "high":   b.get("high",   b.get("h", 0)),
+                            "low":    b.get("low",    b.get("l", 0)),
+                            "close":  b.get("close",  b.get("c", 0)),
+                            "volume": b.get("volume", b.get("v", 0)),
+                        } for b in bars])
+                        timestamps = [b.get("timestamp", b.get("t", "")) for b in bars]
+                        df.index = pd.to_datetime(timestamps, utc=True, errors="coerce")
+                        df = df.dropna()
+                except Exception as dm_err:
+                    logger.debug("[Oracle/B4] DataManager bars failed for %s: %s", symbol, dm_err)
+
+            # yfinance fallback (paper mode / development)
+            if df is None or len(df) < 100:
+                import yfinance as yf
+                raw = yf.download(symbol, period="1y", interval="1h", auto_adjust=True, progress=False)
+                if isinstance(raw.columns, pd.MultiIndex):
+                    raw.columns = [c[0].lower() for c in raw.columns]
+                else:
+                    raw.columns = [c.lower() for c in raw.columns]
+                df = raw.dropna()
+
+            if len(df) < 50:
+                return {"available": False, "reason": "insufficient data"}
+
+            # Engine cache — one instance per symbol, stateful for bars_in_state tracking
+            if not hasattr(self, "_sml_b4_engines"):
+                self._sml_b4_engines = {}
+            if symbol not in self._sml_b4_engines:
+                self._sml_b4_engines[symbol] = SMLBase4Engine(SMLBase4Config(
+                    ci_structural_gate=78,
+                    sqi_prime_level=75,
+                    htf1_resample="4h",
+                    htf2_resample="1D",
+                ))
+
+            result = self._sml_b4_engines[symbol].compute(df)
+            contribution = sml_base4_oracle_contribution(result, weight=25.0)
+
+            return {
+                "available":          True,
+                "state":              result.state.value,
+                "total_coiled":       result.total_coiled,
+                "harmonic_score":     round(result.harmonic_score, 2),
+                "ci_gate_passed":     result.sqi.ci_gate_passed,
+                "sqi_total":          round(result.sqi.total, 2),
+                "is_prime":           result.sqi.is_prime,
+                "full_mtf_stack":     result.full_mtf_stack,
+                "mtf_aligned":        result.mtf_aligned,
+                "directional_bias":   result.directional_bias.value,
+                "compression_vector": result.compression_vector.value,
+                "anchor_ceiling":     round(result.anchor_ceiling, 4),
+                "anchor_floor":       round(result.anchor_floor, 4),
+                "bars_in_state":      result.bars_in_state,
+                "vol_regime":         result.vol_regime,
+                "oracle_contribution": round(contribution, 2),
+            }
+
+        except Exception as exc:
+            logger.warning("[Oracle/B4] SML Base-4 unavailable for %s: %s", symbol, exc)
+            return {"available": False, "reason": str(exc)}
+
     def _score_to_directive(self, score: float, regime: str, gamma_flip: bool, vpin: float) -> str:
         """Convert composite score to BUY/SELL/HOLD/SHIELD directive."""
         if regime == "SHIELD" or score < 5:
@@ -222,9 +316,26 @@ class OracleEngine:
         return "HOLD"
 
     def _build_reason(self, directive: str, fractal_match: str, gamma_flip: bool,
-                      vpin: float, regime: str, score: float) -> str:
+                      vpin: float, regime: str, score: float, b4: dict = None) -> str:
         """One-sentence Driver/Navigator reason string."""
         parts = []
+
+        # SML Base-4 state — highest priority descriptor
+        if b4 and b4.get("available"):
+            b4_state = b4.get("state", "")
+            if b4.get("is_prime"):
+                parts.append(
+                    f"Base-4 PRIME SIGNAL ({b4.get('total_coiled', 0)}/9 sets coiled, "
+                    f"CI {b4.get('harmonic_score', 0):.0f}, SQI {b4.get('sqi_total', 0):.0f})"
+                )
+            elif b4.get("ci_gate_passed"):
+                parts.append(
+                    f"Base-4 structural compression confirmed ({b4.get('total_coiled', 0)}/9 sets, "
+                    f"CI {b4.get('harmonic_score', 0):.0f})"
+                )
+            elif b4_state == "SCANNING":
+                parts.append("Base-4 matrix in chop zone — EMA grid not compressed")
+
         if gamma_flip:
             parts.append("gamma flip confirmed above VWAP")
         if fractal_match and fractal_match != "None":
@@ -263,17 +374,18 @@ class OracleEngine:
 
         sweet_spot = SWEET_SPOT_MIN <= price <= SWEET_SPOT_MAX
 
-        # 2. Parallel engine calls
+        # 2. Parallel engine calls (SML B4 cached 90s — heavier computation)
         gamma_walls = self._cached(f"walls_{symbol}", lambda: self._get_gamma_walls(symbol, price))
-        regime = self._cached(f"regime_{symbol}", lambda: self._get_regime(symbol))
-        fractal = self._cached(f"fractal_{symbol}", lambda: self._get_fractal_signal(symbol, price))
-        mmle = self._cached(f"mmle_{symbol}", lambda: self._get_mmle_signal(symbol))
-        gflow = self._cached(f"gflow_{symbol}", lambda: self._get_gamma_flow(symbol))
+        regime      = self._cached(f"regime_{symbol}", lambda: self._get_regime(symbol))
+        fractal     = self._cached(f"fractal_{symbol}", lambda: self._get_fractal_signal(symbol, price))
+        mmle        = self._cached(f"mmle_{symbol}", lambda: self._get_mmle_signal(symbol))
+        gflow       = self._cached(f"gflow_{symbol}", lambda: self._get_gamma_flow(symbol))
+        b4          = self._cached(f"b4_{symbol}", lambda: self._get_sml_base4_signal(symbol), ttl=90)
 
         # 3. Composite scoring
         score = 0
         score += fractal.get("fractal_score", 0) * 0.30
-        score += mmle.get("vpin", 0) * 40  # VPIN 0–1 → 0–40 pts
+        score += mmle.get("vpin", 0) * 40          # VPIN 0-1 → 0-40 pts
         score += gflow.get("gamma_score", 0) * 0.30
         if gflow.get("gamma_flip"):
             score += 15
@@ -283,12 +395,31 @@ class OracleEngine:
             score -= 15
         if mmle.get("axis_collapse"):
             score -= 20
+
+        # ── SML Base-4 dual-gate contribution (up to +25 pts) ────────────
+        # Prime (CI>=78 AND SQI>=75 AND MTF aligned): full weight
+        # Structural only (CI>=78, SQI not yet at threshold): half weight
+        # Chop zone (CI<78): noise penalty — EMAs lack structural commitment
+        if b4.get("available"):
+            b4_contrib = b4.get("oracle_contribution", 0.0)
+            if b4.get("is_prime"):
+                score += b4_contrib
+            elif b4.get("ci_gate_passed"):
+                score += b4_contrib * 0.5
+            else:
+                score -= 5   # CI below structural gate — market is in chop zone
+
         score = max(0, min(100, score))
 
-        # 4. Directive
-        vpin = mmle.get("vpin", 0)
+        # 4. Base directive from existing logic
+        vpin       = mmle.get("vpin", 0)
         gamma_flip = gflow.get("gamma_flip", False)
-        directive = self._score_to_directive(score, regime, gamma_flip, vpin)
+        directive  = self._score_to_directive(score, regime, gamma_flip, vpin)
+
+        # ── SML B4 prime upgrade ──────────────────────────────────────────
+        # BUY → BUY_PRIME when Base-4 dual-gate passes and score clears BULL_THRESHOLD
+        if directive == "BUY" and b4.get("is_prime"):
+            directive = "BUY_PRIME"
 
         # 5. Price targets
         mults = REGIME_MULTIPLIERS.get(regime, REGIME_MULTIPLIERS["NEUTRAL"])
@@ -306,12 +437,15 @@ class OracleEngine:
         target_pct = fractal.get("target_pct", 0)
         fractal_target = round(price * (1 + target_pct), 2) if target_pct else None
 
-        # 7. Build reason
+        # 7. Build reason (now includes Base-4 narrative)
         reason = self._build_reason(
             directive,
             fractal.get("fractal_match", "None"),
-            gamma_flip, vpin, regime, score
+            gamma_flip, vpin, regime, score, b4=b4
         )
+
+        # 8. Base-4 summary for payload (strip internal fields)
+        b4_payload = {k: v for k, v in b4.items() if not k.startswith("_")} if b4.get("available") else {"available": False}
 
         payload = {
             "symbol":           symbol,
@@ -336,6 +470,7 @@ class OracleEngine:
             "axis_collapse":    mmle.get("axis_collapse", False),
             "fractal_match":    fractal.get("fractal_match", "None"),
             "fractal_score":    round(fractal.get("fractal_score", 0)),
+            "sml_base4":        b4_payload,
         }
 
         logger.info(f"[Oracle] {symbol} → {directive} | Score: {round(score)} | {reason}")
