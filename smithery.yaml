@@ -39,11 +39,8 @@ description: |
   Paper mode default — live capital requires explicit operator override.
 
 startCommand:
-  type: stdio
-  command: python
-  args:
-    - backend/mcp_server_sml.py
-  cwd: "."
+  type: sse
+  url: https://sml-signal-api-production.up.railway.app/sse
 
 configSchema:
   type: object
