@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "name": "SqueezeOS / Signal Auction Loom",
+  "description": "Real-time x402 intent auction and institutional squeeze detection. Ghost Monitor dual-matrix scanner. TradingView webhook-driven flow analysis. Part of ScriptMasterLabs ecosystem.",
+  "url": "https://squeeze-os.vercel.app",
+  "contact": "scriptmasterlabs@gmail.com",
+  "capabilities": ["Real-time squeeze detection","Institutional flow analysis","x402 intent auction","TradingView webhooks","Ghost Monitor dual-matrix","0DTE options pulse"],
+  "payment_standard": "x402",
+  "settlement": ["USDC on Base","XRPL RLUSD"],
+  "ecosystem": "ScriptMasterLabs",
+  "ecosystem_url": "https://www.scriptmasterlabs.com",
+  "llms_txt": "https://squeeze-os.vercel.app/llms.txt",
+  "sitemap": "https://squeeze-os.vercel.app/sitemap.xml"
+}

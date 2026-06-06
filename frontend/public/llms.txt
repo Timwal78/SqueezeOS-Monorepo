@@ -1,0 +1,18 @@
+# SqueezeOS — by ScriptMasterLabs
+
+> Real-time x402 intent auction and institutional squeeze detection engine. Part of ScriptMasterLabs ecosystem.
+
+## What SqueezeOS Does
+- Ghost Monitor dual-matrix scanner
+- TradingView webhook-driven institutional flow analysis
+- Real-time squeeze detection for AMC, GME, 0DTE options
+- x402/HTTP-402 intent auction layer
+
+## Ecosystem
+- [ScriptMasterLabs](https://www.scriptmasterlabs.com): Main hub
+- [Nexus-402](https://www.nexus-402.com): x402 payment infrastructure
+- [x402 Paywall](https://www.scriptmasterlabs.com/x402-paywall.html): @relayos/mcp-paywall on npm
+
+## Contact
+- Email: scriptmasterlabs@gmail.com
+- Ecosystem: https://www.scriptmasterlabs.com
