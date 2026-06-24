@@ -132,3 +132,14 @@ tools:
   - name: get_council_verdict
     description: "Full Bull/Bear/Neutral AI debate via TradingAgents — requires ANTHROPIC_API_KEY"
     cost: "0.25 RLUSD (x402)"
+
+  # ── SqueezeOS Matrix Engine tools (Render — https://squeezeos-api-1.onrender.com) ──
+  - name: query_execution_intent
+    description: "Live 5-EMA Fibonacci Ribbon execution intent for any CCXT crypto pair. Periods [55,89,144,233,365]. Returns EXECUTE_INITIAL_ENTRY, EXECUTE_TRANCHE_AVG_DOWN, EXECUTE_TAKE_PROFIT_EXIT, EXECUTE_STRUCTURAL_STOP_OUT, or MAINTAIN_STATE."
+    cost: "x402 XRPL/RLUSD micropayment"
+    server: "https://squeezeos-api-1.onrender.com/mcp/sse"
+
+  - name: get_ema_matrix
+    description: "Current EMA_55/89/144/233/365 ribbon snapshot for any CCXT pair — no intent evaluation, raw values only."
+    cost: "x402 XRPL/RLUSD micropayment"
+    server: "https://squeezeos-api-1.onrender.com/mcp/sse"

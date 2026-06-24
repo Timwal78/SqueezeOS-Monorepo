@@ -12,8 +12,14 @@ def get_YFin_data_online(
     end_date: Annotated[str, "End date in yyyy-mm-dd format"],
 ):
 
-    datetime.strptime(start_date, "%Y-%m-%d")
-    datetime.strptime(end_date, "%Y-%m-%d")
+    from datetime import timedelta
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    
+    # Cap to max 30 days to save LLM tokens (Groq free tier limits)
+    if (end_dt - start_dt).days > 30:
+        start_dt = end_dt - timedelta(days=30)
+        start_date = start_dt.strftime("%Y-%m-%d")
 
     # Create ticker object
     ticker = yf.Ticker(symbol.upper())
@@ -133,6 +139,9 @@ def get_stock_stats_indicators_window(
         raise ValueError(
             f"Indicator {indicator} is not supported. Please choose from: {list(best_ind_params.keys())}"
         )
+
+    if look_back_days > 15:
+        look_back_days = 15
 
     end_date = curr_date
     curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
